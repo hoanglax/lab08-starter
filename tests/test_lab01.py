@@ -14,3 +14,44 @@ Useful imports:
 
 Do not depend on test execution order. Fixtures: client, app, sample_book.
 """
+
+def test_get_books_empty(client):
+    response = client.get("/books")
+
+    assert response.status_code == 200
+    assert response.get_json() ==[]
+
+def test_get_invalid_books(client):
+    response = client.get("/books/9999")
+
+    assert response.status_code == 404
+    assert response.get_json()["code"] == "NOT_FOUND"
+
+def test_post_books_with_only_author(client):
+    response = client.post("/books", json={"author": "HOANG"})
+
+    assert response.status_code == 400 
+    body = response.get_json()
+    fields = [error["field"] for error in body ["errors"]]
+
+    assert "title" in fields
+
+def test_delete_then_get_404(client):
+    response = client.post(
+        "/books",
+        json={
+            "title": "Python",
+            "author": "Hoang"
+        }
+    )
+
+    assert response.status_code == 201
+
+    book_id = response.get_json()["id"]
+
+    delete_response = client.delete(f"/books/{book_id}")
+    assert delete_response.status_code == 204
+
+    get_response = client.get(f"/books/{book_id}")
+
+    assert get_response.status_code == 404
