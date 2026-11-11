@@ -15,6 +15,10 @@ Useful imports:
 Do not depend on test execution order. Fixtures: client, app, sample_book.
 """
 
+import pytest
+from jsonschema import ValidationError, validate
+
+
 def test_get_books_empty(client):
     response = client.get("/books")
 
@@ -55,3 +59,28 @@ def test_delete_then_get_404(client):
     get_response = client.get(f"/books/{book_id}")
 
     assert get_response.status_code == 404
+
+def test_response_extra_field_blocked():
+    book_schema = {
+        "type": "object",
+        "properties": {
+            "id": {"type": "integer"},
+            "title": {"type": "string"},
+            "author": {"type": "string"},
+            "year": {"type": ["integer", "null"]},
+            "isbn": {"type": ["string", "null"]}
+        },
+        
+        "required": ["id", "title", "author"],
+        "additionalProperties": False
+    }
+
+    response = {
+        "id": 1,
+        "title": "Python Basics",
+        "author": "Hoang",
+        "password_hash": "secret123"
+    }
+
+    with pytest.raises(ValidationError):
+        validate(instance=response, schema=book_schema)
